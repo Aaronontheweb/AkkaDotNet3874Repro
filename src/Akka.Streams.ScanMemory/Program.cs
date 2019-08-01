@@ -14,6 +14,7 @@ namespace Akka.Streams.ScanMemory
         {
             var system = ActorSystem.Create("MySystem");
             var streamBits = Source.ActorRef<int>(1000, OverflowStrategy.DropHead)
+                .Select(x => ThreadLocalRandom.Current.Next(1, 10000))
                 .GroupedWithin(100, TimeSpan.FromMilliseconds(100))
                 .Scan(new SortedSet<int>(), (set, ints) =>
                 {
@@ -26,7 +27,7 @@ namespace Akka.Streams.ScanMemory
             var source = streamBits.Item2;
             var actor = streamBits.Item1;
 
-            system.Scheduler.ScheduleTellRepeatedly(TimeSpan.FromMilliseconds(10), TimeSpan.FromMilliseconds(1), actor, ThreadLocalRandom.Current.Next(), ActorRefs.NoSender);
+            system.Scheduler.ScheduleTellRepeatedly(TimeSpan.FromMilliseconds(10), TimeSpan.FromMilliseconds(1), actor, 1, ActorRefs.NoSender);
             system.Scheduler.ScheduleTellOnce(TimeSpan.FromMinutes(10), actor, PoisonPill.Instance, ActorRefs.NoSender); // terminate stream after 10 minutes
 
             await source.RunForeach(i => { Console.WriteLine("[{0}]", string.Join(",", i)); }, system.Materializer());
